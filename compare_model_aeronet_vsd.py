@@ -1,11 +1,17 @@
+# Author: Athira P T
+# MSc Dissertation: Dust Modelling over the Indian Region
+# Description: Plot model-aeronet VSD 
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
 # File paths
-model_file_path1 = "/scratch/ksapsara/Athira/VSD/comparison_DM_OBS/mean_volume_size_distribution_kanpur_insol_dm_042017.csv"
-#model_file_path2 = "/scratch/ksapsara/Athira/VSD/comparison_DM_OBS/mean_volume_size_distribution_kanpur082018.csv"
-#model_file_path3 = "/scratch/ksapsara/Athira/VSD/comparison_DM_OBS/mean_volume_size_distribution_kanpur092018.csv"
-#aeronet_file_path = ""
+model_file_path1 =[ "../data/mean_volume_size_distribution_kanpur_insol_dm_042017.csv"
+                   "../data/mean_volume_size_distribution_kanpur082018.csv"
+                   "../data/mean_volume_size_distribution_kanpur092018.csv"
+]
+#aeronet_file_path = "PATH_TO_AERONET_VSD_FILE"
 
 # Read the first model file
 model_df1 = pd.read_csv(model_file_path1)
