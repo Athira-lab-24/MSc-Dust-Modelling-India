@@ -1,3 +1,8 @@
+# Author: Athira P T
+# MSc Dissertation: Dust Modelling over the Indian Region
+# Description: Extract surface flux (downward SW and LW) from the model 
+
+
 import iris
 import pandas as pd
 import os
@@ -16,7 +21,7 @@ for date in dates:
     tDay = datetime.strptime(today, "%Y%m%d")
     yDay = (tDay - timedelta(days=1)).strftime('%Y%m%d')
 
-    inpath = '/home/ksapsara/CSM_output/irrig/fcst/{}/gldust-00'.format(today)
+    inpath = "PATH_TO_MODEL_OUTPUT/{}/gldust-00".format(today)
 
     # Define region constraint
     gcon = iris.Constraint(
