@@ -6,12 +6,6 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import geopandas as gpd
 
-
-
-import xarray as xr
-import matplotlib.pyplot as plt
-import geopandas as gpd
-
 ds=xr.open_dataset(r"..\data\dod_20171107_NOV_AOD.nc")
 #print (ds)
 
