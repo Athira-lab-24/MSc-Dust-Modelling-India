@@ -1,49 +1,164 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-import matplotlib.dates as mdates
+# Author: Athira P T
+# MSc Dissertation: Dust Modelling over the Indian Region
+# Description: Compare boundary-layer depth with and without UKCA
+# Period: 06–08 November 2017
+# Time zone: IST
+
 import glob
+import os
+from datetime import datetime, timedelta
+
+import pandas as pd
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+# Directory containing the model CSV files
+DATA_DIR = "../data/boundary_layer_depth"
 
 # File patterns
-file_pattern = "BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP_201711*_surface.csv"
-file_pattern01 = "BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP_201711*_surface_UKCA.csv"
+WITHOUT_UKCA_PATTERN = (
+    "BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP_201711*_surface.csv"
+)
 
-# Function to process a set of files
-def process_files(pattern):
-    all_data = pd.DataFrame()
-    for filename in sorted(glob.glob(pattern)):
-        print("Reading file:", filename)
-        date_str = filename.split('_')[5]
+WITH_UKCA_PATTERN = (
+    "BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP_201711*_surface_UKCA.csv"
+)
+
+# Variable to plot
+PBL_VARIABLE = "BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP"
+
+
+# ============================================================
+# Function to process model files
+# ============================================================
+
+def process_files(file_pattern):
+    """
+    Read boundary-layer-depth CSV files, convert forecast period
+    to IST, and calculate the spatial mean for each time.
+    """
+
+    dataframes = []
+
+    search_pattern = os.path.join(DATA_DIR, file_pattern)
+
+    for filename in sorted(glob.glob(search_pattern)):
+
+        print(f"Reading file: {filename}")
+
+        # Extract initialization date from filename
+        date_str = os.path.basename(filename).split("_")[5]
+
         init_time = datetime.strptime(date_str, "%Y%m%d")
+
+        # Read CSV
         df = pd.read_csv(filename)
-        df['datetime_utc'] = df['forecast_period'].apply(lambda x: init_time + timedelta(hours=x))
-        df['datetime_ist'] = df['datetime_utc'].apply(lambda dt: dt + timedelta(hours=5, minutes=30))
-        all_data = all_data.append(df, ignore_index=True)
-    df_grouped = all_data.groupby('datetime_ist')['BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP'].mean().reset_index()
-    df_grouped.sort_values('datetime_ist', inplace=True)
-    return df_grouped
 
-# Process both sets
-df_obs = process_files(file_pattern)
-df_ukca = process_files(file_pattern01)
+        # Convert forecast period to UTC
+        df["datetime_utc"] = df["forecast_period"].apply(
+            lambda hours: init_time + timedelta(hours=hours)
+        )
 
-# Plotting
-plt.figure(figsize=(10, 5))
-plt.plot(df_obs['datetime_ist'], df_obs['BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP'], marker='o', color='#a65628', label='Without UKCA')
-plt.plot(df_ukca['datetime_ist'], df_ukca['BOUNDARY_LAYER_DEPTH_AFTER_TIMESTEP'], marker='s', color='#4daf4a', label='With UKCA')
+        # Convert UTC to IST
+        df["datetime_ist"] = df["datetime_utc"] + timedelta(
+            hours=5, minutes=30
+        )
 
-# Format x-axis
-plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d-%b %H:%M'))
-plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=6))
+        dataframes.append(df)
 
-# Labels and legend
-plt.title("Boundary Layer Depth")
-plt.xlabel("Time (IST)")
-plt.ylabel("Height (m)")
+    # Check whether files were found
+    if not dataframes:
+        raise FileNotFoundError(
+            f"No files found for pattern: {search_pattern}"
+        )
+
+    # Combine all daily files
+    all_data = pd.concat(dataframes, ignore_index=True)
+
+    # Calculate spatial mean for each time
+    grouped_data = (
+        all_data
+        .groupby("datetime_ist")[PBL_VARIABLE]
+        .mean()
+        .reset_index()
+    )
+
+    # Sort chronologically
+    grouped_data.sort_values("datetime_ist", inplace=True)
+
+    return grouped_data
+
+
+# ============================================================
+# Process the two model experiments
+# ============================================================
+
+df_without_ukca = process_files(WITHOUT_UKCA_PATTERN)
+
+df_with_ukca = process_files(WITH_UKCA_PATTERN)
+
+
+# ============================================================
+# Plot boundary-layer depth
+# ============================================================
+
+fig, ax = plt.subplots(figsize=(10, 5))
+
+ax.plot(
+    df_without_ukca["datetime_ist"],
+    df_without_ukca[PBL_VARIABLE],
+    marker="o",
+    label="Without UKCA"
+)
+
+ax.plot(
+    df_with_ukca["datetime_ist"],
+    df_with_ukca[PBL_VARIABLE],
+    marker="s",
+    label="With UKCA"
+)
+
+
+# ============================================================
+# Format axes
+# ============================================================
+
+ax.xaxis.set_major_formatter(
+    mdates.DateFormatter("%d-%b %H:%M")
+)
+
+ax.xaxis.set_major_locator(
+    mdates.HourLocator(interval=6)
+)
+
+ax.set_xlabel("Time (IST)")
+ax.set_ylabel("Boundary Layer Depth (m)")
+ax.set_title("Boundary Layer Depth: With and Without UKCA")
+
 plt.xticks(rotation=45)
-plt.legend()
+
+ax.legend()
+
 plt.tight_layout()
 
-# Save and show plot
-plt.savefig("pbl_comparison_IST_3days.png")
+
+# ============================================================
+# Save figure
+# ============================================================
+
+output_file = "boundary_layer_depth_comparison_IST.png"
+
+plt.savefig(
+    output_file,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+print(f"Figure saved as: {output_file}")
+
 plt.show()
